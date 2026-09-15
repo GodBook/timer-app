@@ -40,14 +40,19 @@ class AppStore(private val context: Context) {
         } ?: emptyList()
     }
 
-    suspend fun addPreset(name: String, durationMs: Long) {
+    /** 同名同时长的预设不重复添加,返回是否新增 */
+    suspend fun addPreset(name: String, durationMs: Long): Boolean {
+        var added = false
         context.dataStore.edit { prefs ->
             val list = prefs[KEY_PRESETS]?.let {
                 runCatching { json.decodeFromString<List<Preset>>(it) }.getOrDefault(emptyList())
             } ?: emptyList()
+            if (list.any { it.name == name && it.durationMs == durationMs }) return@edit
             val id = (list.maxOfOrNull { it.id } ?: 0) + 1
             prefs[KEY_PRESETS] = json.encodeToString(list + Preset(id, name, durationMs))
+            added = true
         }
+        return added
     }
 
     suspend fun deletePreset(id: Int) {

@@ -27,6 +27,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -37,6 +39,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -56,6 +59,8 @@ fun AddTimerScreen(onBack: () -> Unit) {
     var s by rememberSaveable { mutableIntStateOf(0) }
     val presets by TimerEngine.store.presetsFlow.collectAsState(initial = emptyList())
     var deleting by remember { mutableStateOf<Preset?>(null) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val uiScope = rememberCoroutineScope()
 
     val durationMs = ((h * 3600L + m * 60L + s) * 1000L)
 
@@ -70,6 +75,7 @@ fun AddTimerScreen(onBack: () -> Unit) {
                 },
             )
         },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { pad ->
         Column(
             Modifier.padding(pad).fillMaxSize().verticalScroll(rememberScrollState())
@@ -131,8 +137,13 @@ fun AddTimerScreen(onBack: () -> Unit) {
                 onClick = {
                     if (durationMs > 0) {
                         val presetName = name.ifBlank { formatMs(durationMs) }
-                        TimerEngine.scope.launch {
-                            TimerEngine.store.addPreset(presetName, durationMs)
+                        uiScope.launch {
+                            val added = TimerEngine.store.addPreset(presetName, durationMs)
+                            snackbarHostState.currentSnackbarData?.dismiss()
+                            snackbarHostState.showSnackbar(
+                                if (added) "已保存预设「$presetName ${formatMs(durationMs)}」"
+                                else "该预设已存在"
+                            )
                         }
                     }
                 },

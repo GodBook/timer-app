@@ -181,7 +181,30 @@ private fun TimerCard(t: TimerSnapshot, now: Long) {
                     color = MaterialTheme.colorScheme.error,
                 )
             } else {
-                Text(formatMs(remaining), fontSize = 40.sp, fontWeight = FontWeight.Bold)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        formatMs(remaining),
+                        fontSize = 40.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (t.state == TimerState.PAUSED)
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        else Color.Unspecified,
+                    )
+                    if (t.state == TimerState.PAUSED) {
+                        Spacer(Modifier.width(12.dp))
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant,
+                        ) {
+                            Text(
+                                "已暂停",
+                                Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
             }
             Spacer(Modifier.height(8.dp))
             LinearProgressIndicator(
