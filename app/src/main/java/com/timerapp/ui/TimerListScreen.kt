@@ -5,8 +5,11 @@ import android.os.SystemClock
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -16,6 +19,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Settings
@@ -52,10 +56,11 @@ import com.timerapp.data.TimerState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun TimerListScreen(onAdd: () -> Unit, onSettings: () -> Unit, onPermissions: () -> Unit) {
     val timers by TimerEngine.timers.collectAsState()
+    val presets by TimerEngine.store.presetsFlow.collectAsState(initial = emptyList())
     var now by remember { mutableLongStateOf(SystemClock.elapsedRealtime()) }
     LaunchedEffect(Unit) {
         while (true) {
@@ -109,10 +114,41 @@ fun TimerListScreen(onAdd: () -> Unit, onSettings: () -> Unit, onPermissions: ()
                     }
                 }
             }
+            if (presets.isNotEmpty()) {
+                Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+                    Spacer(Modifier.height(12.dp))
+                    Text("常用预设(点按开始)", style = MaterialTheme.typography.labelLarge)
+                    Spacer(Modifier.height(8.dp))
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        presets.forEach { p ->
+                            Surface(
+                                shape = RoundedCornerShape(16.dp),
+                                color = MaterialTheme.colorScheme.secondaryContainer,
+                                modifier = Modifier.clickable {
+                                    TimerEngine.scope.launch {
+                                        TimerEngine.start(p.name, p.durationMs)
+                                    }
+                                },
+                            ) {
+                                Text(
+                                    "${p.name} ${formatMs(p.durationMs)}",
+                                    Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                )
+                            }
+                        }
+                    }
+                    Spacer(Modifier.height(4.dp))
+                }
+            }
             if (timers.isEmpty()) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text(
-                        "还没有计时器,点右下角 + 新建",
+                        if (presets.isEmpty()) "还没有计时器,点右下角 + 新建"
+                        else "点击预设开始,或点右下角 + 新建",
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
